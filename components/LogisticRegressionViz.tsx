@@ -91,27 +91,38 @@ export default function LogisticRegressionViz() {
         <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-gray-800">{t('lr.sigmoid.title')}</h3>
         <div className="w-full h-[250px] sm:h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={sigmoidData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="x" label={{ value: 'Linear Score (z)', position: 'insideBottom', offset: -5 }} />
-            <YAxis label={{ value: 'Probability', angle: -90, position: 'insideLeft' }} />
-            <Tooltip />
-            <Line
-              type="monotone"
-              dataKey="y"
-              stroke="#0ea5e9"
-              strokeWidth={3}
-              dot={false}
-              animationDuration={1000}
-            />
-            <Line
-              type="monotone"
-              dataKey="x"
-              stroke="transparent"
-              strokeWidth={0}
-            />
-          </LineChart>
-        </ResponsiveContainer>
+            <LineChart data={sigmoidData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#000000" opacity={1} />
+              <XAxis
+                dataKey="x"
+                label={{ value: 'Linear Score (z)', position: 'insideBottom', offset: -5, fill: '#111827' }}
+                tick={{ fill: '#111827', fontSize: 12 }}
+                axisLine={{ stroke: '#000000' }}
+                tickLine={{ stroke: '#000000' }}
+              />
+              <YAxis
+                label={{ value: 'Probability', angle: -90, position: 'insideLeft', fill: '#111827' }}
+                tick={{ fill: '#111827', fontSize: 12 }}
+                axisLine={{ stroke: '#000000' }}
+                tickLine={{ stroke: '#000000' }}
+              />
+              <Tooltip />
+              <Line
+                type="monotone"
+                dataKey="y"
+                stroke="#0ea5e9"
+                strokeWidth={3}
+                dot={false}
+                animationDuration={1000}
+              />
+              <Line
+                type="monotone"
+                dataKey="x"
+                stroke="transparent"
+                strokeWidth={0}
+              />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
         <p className="text-sm text-gray-600 mt-4 text-center">
           {t('lr.sigmoid.desc')}

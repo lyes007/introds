@@ -8,10 +8,12 @@ import RandomForestViz from '@/components/RandomForestViz'
 import XGBoostViz from '@/components/XGBoostViz'
 import LightGBMViz from '@/components/LightGBMViz'
 import EnsembleViz from '@/components/EnsembleViz'
-import { Brain, TrendingUp, Zap, Target, Languages } from 'lucide-react'
+import DecisionTreeViz from '@/components/DecisionTreeViz'
+import { Brain, TrendingUp, Zap, Target, Languages, TreePine } from 'lucide-react'
 import { useTranslation } from '@/contexts/TranslationContext'
 
 const models = [
+  { id: 'decision-tree', nameKey: 'dt.title', icon: TreePine, color: 'bg-teal-500' },
   { id: 'logistic', nameKey: 'lr.title', icon: TrendingUp, color: 'bg-blue-500' },
   { id: 'knn', nameKey: 'knn.title', icon: Target, color: 'bg-green-500' },
   { id: 'random-forest', nameKey: 'rf.title', icon: Brain, color: 'bg-purple-500' },
@@ -26,6 +28,8 @@ export default function Home() {
 
   const renderModelViz = () => {
     switch (selectedModel) {
+      case 'decision-tree':
+        return <DecisionTreeViz />
       case 'logistic':
         return <LogisticRegressionViz />
       case 'knn':

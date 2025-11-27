@@ -6,6 +6,175 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { TrendingUp, Layers, Target } from 'lucide-react'
 import { useTranslation } from '@/contexts/TranslationContext'
 
+// Tree node structure for visualization
+interface TreeNode {
+  id: string
+  level: number
+  x: number
+  y: number
+  label: string
+  isVisible: boolean
+  children?: TreeNode[]
+}
+
+// Level-wise tree growth component for XGBoost
+function LevelWiseTreeGrowth() {
+  const { t } = useTranslation()
+  const [currentLevel, setCurrentLevel] = useState(-1)
+  const [isAnimating, setIsAnimating] = useState(false)
+
+  // Create a tree structure (3 levels deep) with proper parent-child relationships
+  const buildTree = (): { nodes: TreeNode[], connections: Array<{ from: string, to: string }> } => {
+    const nodes: TreeNode[] = []
+    const connections: Array<{ from: string, to: string }> = []
+    const levelHeight = 100
+    const startX = 200
+
+    // Level 0 (root)
+    const root: TreeNode = {
+      id: '0',
+      level: 0,
+      x: startX,
+      y: 50,
+      label: 'Root',
+      isVisible: false,
+    }
+    nodes.push(root)
+
+    // Level 1 (2 nodes)
+    for (let i = 0; i < 2; i++) {
+      const node: TreeNode = {
+        id: `1-${i}`,
+        level: 1,
+        x: startX - 80 + i * 160,
+        y: 50 + levelHeight,
+        label: `L1-${i + 1}`,
+        isVisible: false,
+      }
+      nodes.push(node)
+      connections.push({ from: '0', to: `1-${i}` })
+    }
+
+    // Level 2 (4 nodes)
+    for (let i = 0; i < 4; i++) {
+      const parentId = `1-${Math.floor(i / 2)}`
+      const node: TreeNode = {
+        id: `2-${i}`,
+        level: 2,
+        x: startX - 240 + i * 160,
+        y: 50 + levelHeight * 2,
+        label: `L2-${i + 1}`,
+        isVisible: false,
+      }
+      nodes.push(node)
+      connections.push({ from: parentId, to: `2-${i}` })
+    }
+
+    return { nodes, connections }
+  }
+
+  const { nodes, connections } = buildTree()
+  const maxLevel = Math.max(...nodes.map(n => n.level))
+
+  useEffect(() => {
+    if (isAnimating) {
+      const timer = setInterval(() => {
+        setCurrentLevel(prev => {
+          if (prev >= maxLevel) {
+            setIsAnimating(false)
+            return prev
+          }
+          return prev + 1
+        })
+      }, 1000)
+      return () => clearInterval(timer)
+    }
+  }, [isAnimating, maxLevel])
+
+  const startAnimation = () => {
+    setCurrentLevel(-1)
+    setIsAnimating(true)
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center flex-wrap gap-2">
+        <button
+          onClick={startAnimation}
+          className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm sm:text-base"
+        >
+          {isAnimating ? t('xgb.treeGrowth.animating') : 'Start Animation'}
+        </button>
+        {currentLevel >= 0 && (
+          <span className="text-sm text-gray-600">
+            {t('xgb.treeGrowth.level')} {currentLevel} / {maxLevel}
+          </span>
+        )}
+      </div>
+      <div className="relative w-full h-[350px] border-2 border-gray-200 rounded-lg bg-gray-50 overflow-x-auto">
+        <svg width="100%" height="100%" viewBox="0 0 500 350" preserveAspectRatio="xMidYMid meet" className="absolute inset-0">
+          {/* Draw connections */}
+          {connections.map((conn) => {
+            const fromNode = nodes.find(n => n.id === conn.from)
+            const toNode = nodes.find(n => n.id === conn.to)
+            if (!fromNode || !toNode) return null
+            
+            const fromVisible = fromNode.level <= currentLevel
+            const toVisible = toNode.level <= currentLevel
+            
+            return (
+              <line
+                key={`line-${conn.from}-${conn.to}`}
+                x1={fromNode.x}
+                y1={fromNode.y + 25}
+                x2={toNode.x}
+                y2={toNode.y - 25}
+                stroke="#f97316"
+                strokeWidth="2"
+                opacity={fromVisible && toVisible ? 1 : 0}
+              />
+            )
+          })}
+
+          {/* Draw nodes level by level */}
+          {nodes.map((node) => {
+            const isVisible = node.level <= currentLevel
+            return (
+              <g key={node.id}>
+                <motion.circle
+                  cx={node.x}
+                  cy={node.y}
+                  r={25}
+                  fill={isVisible ? '#f97316' : '#e5e7eb'}
+                  stroke={isVisible ? '#ea580c' : '#d1d5db'}
+                  strokeWidth="2"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: isVisible ? 1 : 0 }}
+                  transition={{ duration: 0.4, delay: node.level * 0.1 }}
+                />
+                <text
+                  x={node.x}
+                  y={node.y + 5}
+                  textAnchor="middle"
+                  fill="white"
+                  fontSize="11"
+                  fontWeight="bold"
+                  opacity={isVisible ? 1 : 0}
+                >
+                  {node.label}
+                </text>
+              </g>
+            )
+          })}
+        </svg>
+      </div>
+      <p className="text-xs sm:text-sm text-gray-500 text-center">
+        All nodes at each level appear together before moving to the next level
+      </p>
+    </div>
+  )
+}
+
 export default function XGBoostViz() {
   const { t } = useTranslation()
   const [step, setStep] = useState(0)
@@ -123,6 +292,13 @@ export default function XGBoostViz() {
           </div>
         </motion.div>
       </AnimatePresence>
+
+      {/* Level-wise Tree Growth Visualization */}
+      <div className="bg-white rounded-xl p-4 sm:p-6 shadow-lg">
+        <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-gray-800">{t('xgb.treeGrowth.title')}</h3>
+        <p className="text-sm text-gray-600 mb-4">{t('xgb.treeGrowth.desc')}</p>
+        <LevelWiseTreeGrowth />
+      </div>
 
       {/* Sequential Tree Building Animation */}
       <div className="bg-white rounded-xl p-4 sm:p-6 shadow-lg">
