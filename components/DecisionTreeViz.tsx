@@ -145,6 +145,7 @@ export default function DecisionTreeViz() {
 
     const isVisible = visibleNodes.has(node.id)
     const isLeaf = !!node.prediction
+    // Responsive sizing - smaller on mobile
     const nodeWidth = 100
     const nodeHeight = 60
     const levelHeight = 90
@@ -339,11 +340,22 @@ export default function DecisionTreeViz() {
         <p className="text-sm text-gray-600 mb-4">
           The tree is built from top to bottom. Each split chooses the feature that best separates the data into "Click" and "No Click" groups.
         </p>
-        <div className="w-full overflow-x-auto">
-          <svg width="100%" height="450" viewBox="0 0 600 450" className="border-2 border-gray-200 rounded-lg bg-gray-50">
-            {renderNode(tree, 300, 40, 0)}
-          </svg>
+        <div className="w-full overflow-x-auto overflow-y-visible -mx-4 sm:mx-0 px-4 sm:px-0">
+          <div className="inline-block min-w-full sm:min-w-0">
+            <svg 
+              width="600" 
+              height="400" 
+              viewBox="0 0 600 400" 
+              className="border-2 border-gray-200 rounded-lg bg-gray-50 block"
+              style={{ minWidth: '600px' }}
+            >
+              {renderNode(tree, 300, 40, 0)}
+            </svg>
+          </div>
         </div>
+        <p className="text-xs text-gray-500 mt-2 text-center sm:hidden">
+          Scroll horizontally to see the full tree
+        </p>
       </div>
 
       {/* Explanation */}

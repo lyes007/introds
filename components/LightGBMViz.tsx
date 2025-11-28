@@ -219,8 +219,9 @@ function LeafWiseTreeGrowth() {
           </span>
         )}
       </div>
-      <div className="relative w-full h-[400px] border-2 border-gray-200 rounded-lg bg-gray-50 overflow-x-auto">
-        <svg width="100%" height="100%" viewBox="0 0 500 400" preserveAspectRatio="xMidYMid meet" className="absolute inset-0">
+      <div className="relative w-full h-[350px] sm:h-[400px] border-2 border-gray-200 rounded-lg bg-gray-50 overflow-x-auto overflow-y-visible -mx-4 sm:mx-0 px-4 sm:px-0">
+        <div className="inline-block min-w-full sm:min-w-0" style={{ minWidth: '500px', height: '100%' }}>
+          <svg width="500" height="400" viewBox="0 0 500 400" preserveAspectRatio="xMidYMid meet" className="block">
           {/* Draw connections - only show if both nodes are visible */}
           {connections.map((conn) => {
             const fromVisible = getNodeVisibility(conn.from)
@@ -302,9 +303,13 @@ function LeafWiseTreeGrowth() {
             )
           })}
         </svg>
+        </div>
       </div>
       <p className="text-xs sm:text-sm text-gray-500 text-center">
         One complete path grows at a time, choosing the leaf with maximum loss reduction
+      </p>
+      <p className="text-xs text-gray-500 mt-1 text-center sm:hidden">
+        Scroll horizontally to see the full tree
       </p>
     </div>
   )

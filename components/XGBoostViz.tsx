@@ -111,8 +111,9 @@ function LevelWiseTreeGrowth() {
           </span>
         )}
       </div>
-      <div className="relative w-full h-[350px] border-2 border-gray-200 rounded-lg bg-gray-50 overflow-x-auto">
-        <svg width="100%" height="100%" viewBox="0 0 500 350" preserveAspectRatio="xMidYMid meet" className="absolute inset-0">
+      <div className="relative w-full h-[300px] sm:h-[350px] border-2 border-gray-200 rounded-lg bg-gray-50 overflow-x-auto overflow-y-visible -mx-4 sm:mx-0 px-4 sm:px-0">
+        <div className="inline-block min-w-full sm:min-w-0" style={{ minWidth: '500px', height: '100%' }}>
+          <svg width="500" height="350" viewBox="0 0 500 350" preserveAspectRatio="xMidYMid meet" className="block">
           {/* Draw connections */}
           {connections.map((conn) => {
             const fromNode = nodes.find(n => n.id === conn.from)
@@ -167,9 +168,13 @@ function LevelWiseTreeGrowth() {
             )
           })}
         </svg>
+        </div>
       </div>
       <p className="text-xs sm:text-sm text-gray-500 text-center">
         All nodes at each level appear together before moving to the next level
+      </p>
+      <p className="text-xs text-gray-500 mt-1 text-center sm:hidden">
+        Scroll horizontally to see the full tree
       </p>
     </div>
   )
