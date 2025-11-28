@@ -189,12 +189,6 @@ function LeafWiseTreeGrowth() {
     })
   }
 
-  const isNodeVisible = (nodeId: string): boolean => {
-    if (nodeId === '0') return true
-    return currentPath.includes(nodeId) || completedPaths.has(nodeId) || 
-           nodes.find(n => n.id === nodeId && completedPaths.has(n.id))
-  }
-
   const getNodeVisibility = (nodeId: string): boolean => {
     if (nodeId === '0') return true
     
