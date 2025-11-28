@@ -155,7 +155,11 @@ function LeafWiseTreeGrowth() {
         } else {
           clearInterval(pathTimer)
           // Mark this path as completed
-          setCompletedPaths(prev => new Set([...prev, leaf.id]))
+          setCompletedPaths(prev => {
+            const newSet = new Set(prev)
+            newSet.add(leaf.id)
+            return newSet
+          })
           // Clear current path and move to next
           setTimeout(() => {
             setCurrentPath([])
