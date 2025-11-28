@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { Zap, Leaf, TrendingDown, Target } from 'lucide-react'
+import { Zap, Leaf, TrendingDown, Target, ZoomIn, ZoomOut, RotateCcw, Move } from 'lucide-react'
 import { useTranslation } from '@/contexts/TranslationContext'
 
 // Tree node structure for visualization
@@ -25,6 +25,13 @@ function LeafWiseTreeGrowth() {
   const [currentPath, setCurrentPath] = useState<string[]>([])
   const [isAnimating, setIsAnimating] = useState(false)
   const [completedPaths, setCompletedPaths] = useState<Set<string>>(new Set())
+  
+  // Zoom and pan state
+  const [zoom, setZoom] = useState(1)
+  const [pan, setPan] = useState({ x: 0, y: 0 })
+  const [isPanning, setIsPanning] = useState(false)
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 })
+  const svgRef = useRef<SVGSVGElement>(null)
 
   // Create a tree structure that grows leaf-wise
   const buildTree = (): { nodes: TreeNode[], connections: Array<{ from: string, to: string }> } => {
@@ -189,6 +196,66 @@ function LeafWiseTreeGrowth() {
     })
   }
 
+  // Zoom controls
+  const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.2, 3))
+  const handleZoomOut = () => setZoom(prev => Math.max(prev - 0.2, 0.5))
+  const handleReset = () => {
+    setZoom(1)
+    setPan({ x: 0, y: 0 })
+  }
+
+  // Pan handlers
+  const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (e.button === 0) {
+      setIsPanning(true)
+      const rect = e.currentTarget.getBoundingClientRect()
+      setPanStart({ 
+        x: e.clientX - pan.x - rect.left, 
+        y: e.clientY - pan.y - rect.top 
+      })
+    }
+  }
+
+  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (isPanning && svgRef.current) {
+      const rect = svgRef.current.getBoundingClientRect()
+      setPan({
+        x: e.clientX - panStart.x - rect.left,
+        y: e.clientY - panStart.y - rect.top,
+      })
+    }
+  }
+
+  const handleMouseUp = () => {
+    setIsPanning(false)
+  }
+
+  // Touch handlers for mobile
+  const handleTouchStart = (e: React.TouchEvent<SVGSVGElement>) => {
+    if (e.touches.length === 1) {
+      setIsPanning(true)
+      const rect = e.currentTarget.getBoundingClientRect()
+      setPanStart({ 
+        x: e.touches[0].clientX - pan.x - rect.left, 
+        y: e.touches[0].clientY - pan.y - rect.top 
+      })
+    }
+  }
+
+  const handleTouchMove = (e: React.TouchEvent<SVGSVGElement>) => {
+    if (isPanning && e.touches.length === 1 && svgRef.current) {
+      const rect = svgRef.current.getBoundingClientRect()
+      setPan({
+        x: e.touches[0].clientX - panStart.x - rect.left,
+        y: e.touches[0].clientY - panStart.y - rect.top,
+      })
+    }
+  }
+
+  const handleTouchEnd = () => {
+    setIsPanning(false)
+  }
+
   const getNodeVisibility = (nodeId: string): boolean => {
     if (nodeId === '0') return true
     
@@ -206,22 +273,66 @@ function LeafWiseTreeGrowth() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center flex-wrap gap-2">
-        <button
-          onClick={startAnimation}
-          className="px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors text-sm sm:text-base"
-        >
-          {isAnimating ? t('lgbm.treeGrowth.animating') : 'Start Animation'}
-        </button>
-        {nextLeafIndex > 0 && (
-          <span className="text-sm text-gray-600">
-            {t('lgbm.treeGrowth.split')} ({nextLeafIndex} / {sortedLeaves.length})
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={startAnimation}
+            className="px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors text-sm sm:text-base"
+          >
+            {isAnimating ? t('lgbm.treeGrowth.animating') : 'Start Animation'}
+          </button>
+          {nextLeafIndex > 0 && (
+            <span className="text-sm text-gray-600">
+              {t('lgbm.treeGrowth.split')} ({nextLeafIndex} / {sortedLeaves.length})
+            </span>
+          )}
+        </div>
+        {/* Zoom Controls */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleZoomOut}
+            className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+            title="Zoom Out"
+          >
+            <ZoomOut className="w-4 h-4 text-gray-700" />
+          </button>
+          <span className="text-xs font-medium text-gray-700 min-w-[50px] text-center">
+            {Math.round(zoom * 100)}%
           </span>
-        )}
+          <button
+            onClick={handleZoomIn}
+            className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+            title="Zoom In"
+          >
+            <ZoomIn className="w-4 h-4 text-gray-700" />
+          </button>
+          <button
+            onClick={handleReset}
+            className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+            title="Reset View"
+          >
+            <RotateCcw className="w-4 h-4 text-gray-700" />
+          </button>
+        </div>
       </div>
-      <div className="relative w-full h-[350px] sm:h-[400px] border-2 border-gray-200 rounded-lg bg-gray-50 overflow-x-auto overflow-y-visible -mx-4 sm:mx-0 px-4 sm:px-0">
-        <div className="inline-block min-w-full sm:min-w-0" style={{ minWidth: '500px', height: '100%' }}>
-          <svg width="500" height="400" viewBox="0 0 500 400" preserveAspectRatio="xMidYMid meet" className="block">
+      <div className="relative w-full h-[350px] sm:h-[400px] border-2 border-gray-200 rounded-lg bg-gray-50 overflow-hidden">
+        <svg 
+          ref={svgRef}
+          width="100%" 
+          height="100%" 
+          viewBox="0 0 500 400" 
+          preserveAspectRatio="xMidYMid meet"
+          className="cursor-move"
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          style={{ touchAction: 'none' }}
+        >
+          <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
           {/* Draw connections - only show if both nodes are visible */}
           {connections.map((conn) => {
             const fromVisible = getNodeVisibility(conn.from)
@@ -302,14 +413,15 @@ function LeafWiseTreeGrowth() {
               </g>
             )
           })}
+          </g>
         </svg>
+        <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
+          <Move className="w-3 h-3" />
+          <span>Drag to pan</span>
         </div>
       </div>
       <p className="text-xs sm:text-sm text-gray-500 text-center">
         One complete path grows at a time, choosing the leaf with maximum loss reduction
-      </p>
-      <p className="text-xs text-gray-500 mt-1 text-center sm:hidden">
-        Scroll horizontally to see the full tree
       </p>
     </div>
   )

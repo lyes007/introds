@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { TreePine } from 'lucide-react'
+import { TreePine, ZoomIn, ZoomOut, RotateCcw, Move } from 'lucide-react'
 import { useTranslation } from '@/contexts/TranslationContext'
 
 interface TreeNode {
@@ -97,6 +97,13 @@ export default function DecisionTreeViz() {
   const [isAnimating, setIsAnimating] = useState(false)
   const [currentStep, setCurrentStep] = useState(0)
   
+  // Zoom and pan state
+  const [zoom, setZoom] = useState(1)
+  const [pan, setPan] = useState({ x: 0, y: 0 })
+  const [isPanning, setIsPanning] = useState(false)
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 })
+  const svgRef = useRef<SVGSVGElement>(null)
+  
   // Memoize tree to prevent recreation on every render
   const tree = useMemo(() => buildTree(), [])
 
@@ -138,6 +145,66 @@ export default function DecisionTreeViz() {
         setIsAnimating(false)
       }
     }, 800)
+  }
+
+  // Zoom controls
+  const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.2, 3))
+  const handleZoomOut = () => setZoom(prev => Math.max(prev - 0.2, 0.5))
+  const handleReset = () => {
+    setZoom(1)
+    setPan({ x: 0, y: 0 })
+  }
+
+  // Pan handlers
+  const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (e.button === 0) { // Left mouse button
+      setIsPanning(true)
+      const rect = e.currentTarget.getBoundingClientRect()
+      setPanStart({ 
+        x: e.clientX - pan.x - rect.left, 
+        y: e.clientY - pan.y - rect.top 
+      })
+    }
+  }
+
+  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (isPanning && svgRef.current) {
+      const rect = svgRef.current.getBoundingClientRect()
+      setPan({
+        x: e.clientX - panStart.x - rect.left,
+        y: e.clientY - panStart.y - rect.top,
+      })
+    }
+  }
+
+  const handleMouseUp = () => {
+    setIsPanning(false)
+  }
+
+  // Touch handlers for mobile
+  const handleTouchStart = (e: React.TouchEvent<SVGSVGElement>) => {
+    if (e.touches.length === 1) {
+      setIsPanning(true)
+      const rect = e.currentTarget.getBoundingClientRect()
+      setPanStart({ 
+        x: e.touches[0].clientX - pan.x - rect.left, 
+        y: e.touches[0].clientY - pan.y - rect.top 
+      })
+    }
+  }
+
+  const handleTouchMove = (e: React.TouchEvent<SVGSVGElement>) => {
+    if (isPanning && e.touches.length === 1 && svgRef.current) {
+      const rect = svgRef.current.getBoundingClientRect()
+      setPan({
+        x: e.touches[0].clientX - panStart.x - rect.left,
+        y: e.touches[0].clientY - panStart.y - rect.top,
+      })
+    }
+  }
+
+  const handleTouchEnd = () => {
+    setIsPanning(false)
   }
 
   const renderNode = (node: TreeNode | undefined, x: number, y: number, level: number) => {
@@ -336,26 +403,68 @@ export default function DecisionTreeViz() {
 
       {/* Tree Visualization */}
       <div className="bg-white rounded-xl p-4 sm:p-6 shadow-lg">
-        <h3 className="text-lg sm:text-xl font-semibold mb-4 text-gray-800">Decision Tree Construction</h3>
-        <p className="text-sm text-gray-600 mb-4">
-          The tree is built from top to bottom. Each split chooses the feature that best separates the data into "Click" and "No Click" groups.
-        </p>
-        <div className="w-full overflow-x-auto overflow-y-visible -mx-4 sm:mx-0 px-4 sm:px-0">
-          <div className="inline-block min-w-full sm:min-w-0">
-            <svg 
-              width="600" 
-              height="400" 
-              viewBox="0 0 600 400" 
-              className="border-2 border-gray-200 rounded-lg bg-gray-50 block"
-              style={{ minWidth: '600px' }}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+          <div>
+            <h3 className="text-lg sm:text-xl font-semibold text-gray-800">Decision Tree Construction</h3>
+            <p className="text-sm text-gray-600 mt-1">
+              The tree is built from top to bottom. Each split chooses the feature that best separates the data into "Click" and "No Click" groups.
+            </p>
+          </div>
+          {/* Zoom Controls */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={handleZoomOut}
+              className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              title="Zoom Out"
             >
-              {renderNode(tree, 300, 40, 0)}
-            </svg>
+              <ZoomOut className="w-5 h-5 text-gray-700" />
+            </button>
+            <span className="text-sm font-medium text-gray-700 min-w-[60px] text-center">
+              {Math.round(zoom * 100)}%
+            </span>
+            <button
+              onClick={handleZoomIn}
+              className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              title="Zoom In"
+            >
+              <ZoomIn className="w-5 h-5 text-gray-700" />
+            </button>
+            <button
+              onClick={handleReset}
+              className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              title="Reset View"
+            >
+              <RotateCcw className="w-5 h-5 text-gray-700" />
+            </button>
           </div>
         </div>
-        <p className="text-xs text-gray-500 mt-2 text-center sm:hidden">
-          Scroll horizontally to see the full tree
-        </p>
+        <div className="relative w-full h-[400px] border-2 border-gray-200 rounded-lg bg-gray-50 overflow-hidden">
+          <svg 
+            ref={svgRef}
+            width="100%" 
+            height="100%" 
+            viewBox="0 0 600 400" 
+            className="cursor-move"
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            style={{ touchAction: 'none' }}
+          >
+            <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
+              <g transform="translate(300, 40)">
+                {renderNode(tree, 0, 0, 0)}
+              </g>
+            </g>
+          </svg>
+          <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
+            <Move className="w-3 h-3" />
+            <span>Drag to pan</span>
+          </div>
+        </div>
       </div>
 
       {/* Explanation */}
