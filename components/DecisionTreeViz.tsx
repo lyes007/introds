@@ -126,7 +126,11 @@ export default function DecisionTreeViz() {
     let index = 0
     const timer = setInterval(() => {
       if (index < allNodes.length) {
-        setVisibleNodes(prev => new Set([...prev, allNodes[index]]))
+        setVisibleNodes(prev => {
+          const newSet = new Set(prev)
+          newSet.add(allNodes[index])
+          return newSet
+        })
         setCurrentStep(index + 1)
         index++
       } else {
